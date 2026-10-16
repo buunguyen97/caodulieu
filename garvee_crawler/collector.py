@@ -80,7 +80,7 @@ class Source:
         self.client = httpx.AsyncClient(timeout=40, follow_redirects=False,
                                       headers={'User-Agent': UA, 'Accept-Language': 'en-US'})
 
-    async def get(self, url, check=True):
+    async def get(self, url, check=True, method='GET', content=None, headers=None):
         if urlsplit(url).hostname != 'www.garvee.com':
             raise ValueError('URL ngoài phạm vi')
         if check and self.rules and not self.rules.can_fetch(url, UA):
@@ -90,7 +90,7 @@ class Source:
                 await asyncio.sleep(max(0, self.delay - (time.monotonic() - self.last)))
                 self.last = time.monotonic()
             try:
-                r = await self.client.get(url)
+                r = await self.client.request(method, url, content=content, headers=headers)
                 r.raise_for_status()
                 return r
             except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPStatusError) as exc:
@@ -177,6 +177,7 @@ async def crawl(source, db, urls, refresh=False):
     db.execute('CREATE TABLE IF NOT EXISTS linked_colors (url TEXT PRIMARY KEY, links TEXT)')
     expanded = list(dict.fromkeys(urls))
     seen = set(expanded)
+    print('PHASE: Đang kiểm tra các màu liên kết', flush=True)
     for url in expanded:
         cached = db.execute('SELECT links FROM linked_colors WHERE url=?', (url,)).fetchone()
         if cached and not refresh:

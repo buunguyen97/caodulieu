@@ -4,6 +4,22 @@ Dự án Python lấy sản phẩm GARVEE từ sitemap và JSON công khai, lưu
 
 ## Giao diện tiếng Việt
 
+### Cào danh mục và lịch sử tác vụ
+
+Chọn **Một danh mục sản phẩm**, nhập link như `https://www.garvee.com/collections/tennis`, đặt tên tác vụ rồi bấm bắt đầu. Bộ cào đọc danh sách danh mục và đi qua phân trang bằng cursor, không dùng sản phẩm gợi ý. Website hiện có thể tự chuyển hướng tới bộ lọc còn hàng; bộ cào giữ bộ lọc của website/link đã nhập, không khẳng định lấy mọi sản phẩm đã ẩn hoặc bị lọc. Màu liên kết được bổ sung để tránh thiếu màu nên kết quả có thể lớn hơn giới hạn URL đầu vào.
+
+Nếu HTML trang tiếp theo bị lặp, bộ cào dùng thao tác load-more công khai của website. Định danh thao tác này được kiểm chứng ngày 16/10/2026; khi GARVEE thay đổi bản triển khai, có thể cần cập nhật `GARVEE_COLLECTION_ACTION`. Không đọc được hoặc cursor lặp sẽ báo lỗi, không báo hoàn tất thiếu sản phẩm.
+
+**Lịch sử thu thập** giữ riêng CSV, JSONL, báo cáo và URL trong `output/runs/<id>/`. Tải CSV tại dòng lịch sử để lấy đúng bản dữ liệu của lần đó; các lần cập nhật sau không thay đổi bản cũ. Lịch sử bắt đầu từ phiên bản này, không tái tạo được các tác vụ cũ không có thông tin.
+
+Cả CLI và giao diện dùng khóa hệ điều hành trên thư mục output. Tác vụ thứ hai bị từ chối khi một tác vụ đang ghi dữ liệu; khóa tự giải phóng khi tiến trình kết thúc. Giao diện mới phân trang trước khi đọc dữ liệu sản phẩm và tính tổng trực tiếp từ SQLite.
+
+```powershell
+.\.venv\Scripts\python -m garvee_crawler.cli --collection https://www.garvee.com/collections/tennis --limit 0 --name "Tennis"
+```
+
+`start-ui.cmd` tự mở trình duyệt; nếu giao diện đã chạy, mở lại giao diện hiện có.
+
 Nút **Tải CSV lần gần nhất** chỉ xuất sản phẩm thuộc danh sách của lần cào gần nhất, bao gồm dữ liệu được tái sử dụng từ kho. Nút **Tải toàn bộ dữ liệu đã lưu** tải `products-all.csv`. Bảng danh mục vẫn hiển thị toàn bộ dữ liệu lịch sử. Nếu lần cào không lấy được sản phẩm, file lần đó chỉ có tiêu đề cột.
 
 Mở `start-ui.cmd` trong thư mục dự án, sau đó mở http://127.0.0.1:8766 trong trình duyệt. Hoặc chạy:

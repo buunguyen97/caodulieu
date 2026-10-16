@@ -6,12 +6,46 @@ import os
 import sys
 from pathlib import Path
 from uuid import uuid4
+from contextlib import nullcontext
+from copy import copy
 
 from .collector import Source, connect, crawl, product_url
 from .export import export, selected_products
+from .categories import collection_url, discover_collection
+from .jobs import OutputLock, begin_job, finish_job
 
 
 async def run(args):
+    # Dashboard parent owns the same OS lock throughout crawl + stop/export.
+    import psutil
+    owner = os.environ.get('GARVEE_LOCK_PARENT')
+    # Windows venv launchers insert an intermediate python.exe process.
+    inherited = bool(owner and owner in {str(p.pid) for p in psutil.Process().parents()})
+    with (nullcontext() if inherited else OutputLock(args.output)):
+        job = None
+        if not args.export_only:
+            source = getattr(args, 'collection', None) or ('Danh sách URL' if args.urls else 'Sitemap GARVEE')
+            job = begin_job(args.output, getattr(args, 'name', None), source)
+        try:
+            code = await run_locked(args)
+        except (Exception, asyncio.CancelledError) as exc:
+            if job:
+                fallback = copy(args)
+                fallback.export_only = True
+                try:
+                    await run_locked(fallback)
+                finally:
+                    report_path = Path(args.output) / 'report.json'
+                    report = json.loads(report_path.read_text(encoding='utf-8')) if report_path.exists() else None
+                    finish_job(args.output, job, 'error', report, error=exc)
+            raise
+        if job:
+            report = json.loads((Path(args.output) / 'report.json').read_text(encoding='utf-8'))
+            finish_job(args.output, job, 'completed' if code == 0 else 'error', report)
+        return code
+
+
+async def run_locked(args):
     out = Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
     # Each run gets a fresh framework queue; SQLite is the durable resume authority.
@@ -29,8 +63,14 @@ async def run(args):
             db.execute('DELETE FROM run_urls')
             db.commit()
             export(db, args.template, out / 'products.csv', current_run=True)
+            (out / 'urls.txt').write_text('', encoding='utf-8')
+            (out / 'products.jsonl').write_text('', encoding='utf-8')
+            print('PHASE: Đang tìm danh sách sản phẩm', flush=True)
             await source.initialize()
-            if args.urls:
+            if getattr(args, 'collection', None):
+                urls = await discover_collection(source, args.collection, args.limit,
+                    lambda page,count: print(f'PHASE: Đang quét danh mục · trang {page} · {count} URL', flush=True))
+            elif args.urls:
                 urls = list(dict.fromkeys(product_url(x) for x in Path(args.urls).read_text(encoding='utf-8-sig').splitlines() if x.strip() and not x.startswith('#')))
                 if args.limit:
                     urls = urls[:args.limit]
@@ -68,6 +108,8 @@ def main():
     p = argparse.ArgumentParser(description='Thu thập GARVEE và xuất CSV theo template')
     p.add_argument('--limit', type=int, default=30, help='Số URL đầu tiên; 0 = toàn bộ sitemap')
     p.add_argument('--urls', help='File URL, mỗi dòng một sản phẩm')
+    p.add_argument('--collection', help='URL danh mục GARVEE')
+    p.add_argument('--name', help='Tên lần thu thập trong lịch sử')
     p.add_argument('--output', default='output')
     p.add_argument('--template', default='templates/product_template.csv')
     p.add_argument('--delay', type=float, default=1.0)
@@ -77,6 +119,10 @@ def main():
     args = p.parse_args()
     if args.limit < 0 or args.delay < 0:
         p.error('limit và delay phải >= 0')
+    if args.collection:
+        args.collection = collection_url(args.collection)
+    if args.collection and args.urls:
+        p.error('Chỉ chọn --collection hoặc --urls')
     Path(args.output).mkdir(parents=True, exist_ok=True)
     logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), logging.FileHandler(Path(args.output) / 'crawl.log', encoding='utf-8')])
     raise SystemExit(asyncio.run(run(args)))
