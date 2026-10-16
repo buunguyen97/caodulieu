@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GARVEE · Trạm dữ liệu</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a class="brand" href="/">G<span>↗</span></a><div><strong>GARVEE <span class="light">/ TRẠM DỮ LIỆU</span></strong><small>Thu thập sản phẩm · Quản lý danh mục</small></div><span class="local">● Chạy trên máy của bạn</span></header>
+<main>
+<div class="intro"><div><p class="eyebrow">KHÔNG GIAN LÀM VIỆC</p><h1>Từ sản phẩm đến dữ liệu.</h1><p>Thu thập, kiểm tra và xuất danh mục GARVEE ở một nơi.</p></div><a id="download" class="button dark" href="/download/products.csv">↓ Tải CSV lần gần nhất</a></div>
+<div class="layout">
+<aside><form id="crawl-form"><div class="section-title"><h2>Thiết lập thu thập</h2><span class="dot"></span></div>
+<div class="route"><div><b>garvee.com</b><span>Nguồn sản phẩm</span></div><span>↓</span><div><b>Danh mục của bạn</b><span>Lưu trên máy · Xuất CSV</span></div></div>
+<fieldset id="settings"><label for="mode">Nguồn thu thập</label><select id="mode"><option value="sitemap">Danh sách sản phẩm trên website</option><option value="urls">Nhập đường dẫn sản phẩm</option></select>
+<div id="url-area" hidden><label for="urls">Đường dẫn sản phẩm</label><textarea id="urls" rows="5" placeholder="https://www.garvee.com/products/…"></textarea><small>Mỗi dòng một URL sản phẩm GARVEE.</small></div>
+<div class="two"><div><label for="limit">Số sản phẩm</label><input id="limit" type="number" value="100" min="0" max="100000" required></div><div><label for="delay">Khoảng chờ (giây)</label><input id="delay" type="number" value="1" min="0.5" max="30" step="0.5" required></div></div><small>Nhập 0 để lấy toàn bộ danh sách.</small>
+<label class="check"><input id="refresh" type="checkbox"><span>Cập nhật sản phẩm đã lưu<small>Bỏ chọn để chạy tiếp, chỉ lấy mục chưa có.</small></span></label></fieldset>
+<button id="start" class="button primary" type="submit">Bắt đầu thu thập <span>↗</span></button><button id="stop" class="button stop" type="button" hidden>Dừng và lưu kết quả</button>
+<p id="notice" role="alert"></p></form>
+<div class="help"><a href="/download/products-all.csv" class="text-button">↓ Tải toàn bộ dữ liệu đã lưu</a><p>CSV lần gần nhất chỉ gồm sản phẩm thuộc danh sách bạn vừa yêu cầu. Bảng bên phải hiển thị toàn bộ kho dữ liệu.</p><b>Dữ liệu được giữ lại</b><p>Bạn có thể dừng và chạy tiếp. Sản phẩm xuất ở trạng thái nháp để kiểm tra trước khi đăng.</p><button id="export" class="text-button">↻ Xuất lại CSV từ dữ liệu đã lưu</button></div></aside>
+<section class="workspace">
+<div class="status-box"><div class="status-heading"><div><span id="phase" class="badge">SẴN SÀNG</span><h2 id="status-message" aria-live="polite">Đang tải dữ liệu…</h2></div><span id="progress-label">—</span></div><progress id="progress" max="100" value="0" aria-label="Tiến độ thu thập"></progress><div class="metrics"><div><strong id="product-count">—</strong><span>Sản phẩm đã lưu</span></div><div><strong id="variant-count">—</strong><span>Biến thể</span></div><div><strong id="error-count">—</strong><span>Mục gặp lỗi</span></div></div></div>
+<div class="catalog"><div class="catalog-head"><div><h2>Danh mục sản phẩm</h2><p id="result-count">Dữ liệu được lưu từ các lần thu thập</p></div><input id="search" type="search" placeholder="Tìm tên sản phẩm, SKU…" aria-label="Tìm sản phẩm"></div>
+<div class="table-wrap"><table><thead><tr><th>Sản phẩm / SKU</th><th>Giá nguồn¹</th><th>Biến thể</th><th>Trạng thái nguồn</th></tr></thead><tbody id="products"></tbody></table></div><div id="empty" hidden>Chưa có sản phẩm. Chọn nguồn và bấm Bắt đầu thu thập.</div><footer class="table-footer"><span>¹ Chưa đối chiếu tiền tệ · Giá chưa áp coupon</span><div><button id="prev" aria-label="Trang trước">←</button><span id="page-label">1</span><button id="next" aria-label="Trang sau">→</button></div></footer></div>
+<details id="error-details"><summary>Các mục cần kiểm tra <span id="error-total">0</span></summary><div id="errors"></div></details>
+<details><summary>Nhật ký thu thập</summary><pre id="logs">Chưa chạy tác vụ trong phiên này.</pre></details>
+</section></div></main><script src="/app.js"></script></body></html>
+

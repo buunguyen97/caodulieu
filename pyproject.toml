@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "garvee-crawler"
+version = "0.1.0"
+description = "Resumable GARVEE catalog collector and template CSV exporter"
+requires-python = ">=3.11"
+dependencies = ["crawlee[beautifulsoup,playwright]==1.11.0", "httpx==0.28.1", "protego>=0.5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+garvee = "garvee_crawler.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["garvee_crawler*"]
+
+[tool.setuptools.package-data]
+garvee_crawler = ["static/*"]
