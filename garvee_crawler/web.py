@@ -15,7 +15,7 @@ from urllib.parse import urlsplit, parse_qs
 from .collector import product_url
 from .export import image_url
 from .categories import collection_url
-from .jobs import OutputLock, list_jobs, finish_job
+from .jobs import OutputLock, list_jobs, finish_job, delete_job
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = Path(__file__).with_name('static')
@@ -252,6 +252,11 @@ def make_handler(app):
                     app.start(data)
                 elif self.path == '/api/stop':
                     app.stop()
+                elif self.path == '/api/runs/delete':
+                    with app.lock:
+                        if app.state['running']:
+                            raise ValueError('Hãy chờ hoặc dừng tác vụ trước khi xóa lịch sử.')
+                        delete_job(app.output, data.get('id'))
                 else:
                     return self.send(404, {'error': 'Không tìm thấy'})
                 return self.send(200, {'ok': True})

@@ -1,6 +1,7 @@
 """OS locks and immutable per-run artifacts, shared by CLI and dashboard."""
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 from datetime import datetime, timezone
@@ -89,3 +90,16 @@ def list_jobs(output):
         except (OSError, ValueError):
             continue
     return sorted(result, key=lambda j:j['started_at'], reverse=True)
+
+
+def delete_job(output, job_id):
+    if not isinstance(job_id, str) or not re.fullmatch(r'[a-f0-9]{32}', job_id):
+        raise ValueError('Mã lịch sử không hợp lệ.')
+    with OutputLock(output):
+        root = (Path(output) / 'runs').resolve()
+        folder = root / job_id
+        if folder.is_symlink() or folder.resolve().parent != root:
+            raise ValueError('Đường dẫn lịch sử không hợp lệ.')
+        if not (folder / 'job.json').is_file():
+            raise ValueError('Lịch sử này không còn tồn tại.')
+        shutil.rmtree(folder)

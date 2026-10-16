@@ -95,3 +95,21 @@ def test_job_csv_snapshot_is_immutable(tmp_path):
     (tmp_path/'products.csv').write_text('second',encoding='utf-8')
     assert (tmp_path/'runs'/job['id']/'products.csv').read_text()=='first'
     assert list_jobs(tmp_path)[0]['downloadable']
+
+
+def test_delete_history_preserves_catalog_and_other_runs(tmp_path):
+    from garvee_crawler.jobs import delete_job
+    first = begin_job(tmp_path, 'First', 'source')
+    second = begin_job(tmp_path, 'Second', 'source')
+    (tmp_path/'products.csv').write_text('latest')
+    (tmp_path/'catalog.sqlite').write_text('catalog')
+    delete_job(tmp_path, first['id'])
+    assert [j['id'] for j in list_jobs(tmp_path)] == [second['id']]
+    assert (tmp_path/'products.csv').read_text() == 'latest'
+    assert (tmp_path/'catalog.sqlite').read_text() == 'catalog'
+    with pytest.raises(ValueError):
+        delete_job(tmp_path, '../products.csv')
+    with OutputLock(tmp_path):
+        with pytest.raises(ValueError):
+            delete_job(tmp_path, second['id'])
+    assert (tmp_path/'runs'/second['id']/'job.json').exists()

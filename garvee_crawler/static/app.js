@@ -11,5 +11,14 @@ $('export').onclick=async()=>{try{await api('/api/start',{export_only:true});awa
 $('search').oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{page=1;products().catch(e=>$('notice').textContent=e.message)},250)};
 $('prev').onclick=()=>{page--;products().catch(e=>$('notice').textContent=e.message)};$('next').onclick=()=>{page++;products().catch(e=>$('notice').textContent=e.message)};
 products().catch(e=>$('notice').textContent=e.message);poll();setInterval(poll,2000);
-async function history(){const runs=await api('/api/runs');$('runs').innerHTML=runs.length?runs.map(j=>`<article class="run"><div><b>${esc(j.name)}</b><small>${esc(new Date(j.started_at).toLocaleString('vi-VN'))} · ${esc(({running:'Đang chạy',completed:'Hoàn tất',stopped:'Đã dừng',error:'Có lỗi'})[j.status]||j.status)} · ${j.products} sản phẩm</small><small class="run-source">${esc(j.source)}</small>${j.error?`<small class="run-error">${esc(j.error)}</small>`:''}</div>${j.downloadable?`<a href="/download/runs/${esc(j.id)}.csv" class="button">↓ CSV</a>`:'<span class="badge">Đang xử lý</span>'}</article>`).join(''):'Chưa có lịch sử. Lần thu thập mới sẽ được lưu ở đây.'}
+async function history(){const runs=await api('/api/runs');$('runs').innerHTML=runs.length?runs.map(j=>`<article class="run"><div><b>${esc(j.name)}</b><small>${esc(new Date(j.started_at).toLocaleString('vi-VN'))} · ${esc(({running:'Đang chạy',completed:'Hoàn tất',stopped:'Đã dừng',error:'Có lỗi'})[j.status]||j.status)} · ${j.products} sản phẩm</small><small class="run-source">${esc(j.source)}</small>${j.error?`<small class="run-error">${esc(j.error)}</small>`:''}</div><div class="run-actions">${j.downloadable?`<a href="/download/runs/${esc(j.id)}.csv" class="button">↓ CSV</a>`:'<span class="badge">Đang xử lý</span>'}<button type="button" class="button delete-run" data-id="${esc(j.id)}" ${lastRunning?'disabled':''}>Xóa</button></div></article>`).join(''):'Chưa có lịch sử. Lần thu thập mới sẽ được lưu ở đây.'}
 history().catch(e=>$('runs').textContent=e.message);setInterval(()=>history().catch(()=>{}),4000);
+
+$('runs').onclick=async e=>{
+ const button=e.target.closest('.delete-run');
+ if(!button)return;
+ if(!confirm('Xóa lần chạy này khỏi lịch sử và xóa các tệp kết quả riêng của lần chạy? Dữ liệu sản phẩm đã lưu và CSV lần gần nhất vẫn được giữ.'))return;
+ button.disabled=true;
+ try{await api('/api/runs/delete',{id:button.dataset.id});await history()}
+ catch(error){$('notice').textContent=error.message;button.disabled=false}
+};
