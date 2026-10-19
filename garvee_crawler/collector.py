@@ -170,15 +170,15 @@ class Source:
         raise ValueError('Không lấy được JSON đầy đủ; có thể thử --browser-fallback')
 
 
-async def crawl(source, db, urls, refresh=False):
+async def crawl(source, db, urls, refresh=False, expand_colors=True):
     from crawlee import ConcurrencySettings
     from crawlee.crawlers import BasicCrawler
     # Linked colors may be separate Shopify products, absent from the seed JSON.
     db.execute('CREATE TABLE IF NOT EXISTS linked_colors (url TEXT PRIMARY KEY, links TEXT)')
     expanded = list(dict.fromkeys(urls))
     seen = set(expanded)
-    print('PHASE: Đang kiểm tra các màu liên kết', flush=True)
-    for url in expanded:
+    print('PHASE: ' + ('Đang kiểm tra các màu liên kết' if expand_colors else 'Đang lấy chi tiết sản phẩm trong danh mục'), flush=True)
+    for url in expanded if expand_colors else []:
         cached = db.execute('SELECT links FROM linked_colors WHERE url=?', (url,)).fetchone()
         if cached and not refresh:
             links = json.loads(cached[0])

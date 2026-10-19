@@ -79,7 +79,10 @@ async def run_locked(args):
             (out / 'urls.txt').write_text('\n'.join(urls), encoding='utf-8')
             db.executemany('INSERT OR IGNORE INTO run_urls VALUES (?)', [(u,) for u in urls])
             db.commit()
-            await crawl(source, db, urls, args.refresh)
+            # Collection results define membership: sibling colors may fall outside
+            # the selected category or its price/availability filters.
+            await crawl(source, db, urls, args.refresh,
+                        expand_colors=not bool(getattr(args, 'collection', None)))
         rows = export(db, args.template, out / 'products.csv', current_run=True)
         export(db, args.template, out / 'products-all.csv')
         products = selected_products(db)
@@ -106,7 +109,7 @@ def main():
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
     p = argparse.ArgumentParser(description='Thu thập GARVEE và xuất CSV theo template')
-    p.add_argument('--limit', type=int, default=30, help='Số URL đầu tiên; 0 = toàn bộ sitemap')
+    p.add_argument('--limit', type=int, default=0, help='Số sản phẩm phù hợp; 0 = lấy toàn bộ')
     p.add_argument('--urls', help='File URL, mỗi dòng một sản phẩm')
     p.add_argument('--collection', help='URL danh mục GARVEE')
     p.add_argument('--name', help='Tên lần thu thập trong lịch sử')

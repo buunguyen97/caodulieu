@@ -2,6 +2,7 @@
 import json
 import re
 import os
+from decimal import Decimal, InvalidOperation
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode, urljoin
 import httpx
 
@@ -12,6 +13,42 @@ from .collector import BASE, product_url
 # Public load-more action observed in GARVEE's own collection JavaScript.
 # Override after a storefront deployment changes its action identifier.
 COLLECTION_ACTION = '9515a6e4242f51f14bd410ed339b51e818a9c1a6'
+
+
+def collection_request(value):
+    """Keep availability/category filters on the site; apply price bounds locally."""
+    split = urlsplit(collection_url(value))
+    query, bounds = [], {}
+    for key, value in parse_qsl(split.query):
+        if key in ('filter.v.price.gte', 'filter.v.price.lte'):
+            try:
+                amount = Decimal(value)
+            except InvalidOperation:
+                raise ValueError('Giá trong link danh mục không hợp lệ.') from None
+            if not amount.is_finite() or amount < 0 or key in bounds:
+                raise ValueError('Giá trong link danh mục không hợp lệ.')
+            bounds[key] = amount
+        else:
+            query.append((key, value))
+    low, high = bounds.get('filter.v.price.gte'), bounds.get('filter.v.price.lte')
+    if low is not None and high is not None and low > high:
+        raise ValueError('Giá tối thiểu phải nhỏ hơn hoặc bằng giá tối đa.')
+    return urlunsplit(split._replace(query=urlencode(query))), low, high
+
+
+def matches_price(product, low, high):
+    if low is None and high is None:
+        return True
+    prices = [v.get('price') for v in product.get('variants', [])]
+    if not prices:
+        prices = [product.get('price')]
+    try:
+        amounts = [Decimal(str(p['amount'])) for p in prices]
+        if not amounts or any(not p.is_finite() for p in amounts):
+            raise ValueError()
+    except (InvalidOperation, KeyError, TypeError, ValueError):
+        raise ValueError(f"Không đọc được giá để lọc sản phẩm: {product.get('handle', '')}") from None
+    return any((low is None or p >= low) and (high is None or p <= high) for p in amounts)
 
 
 async def next_action_page(source, url, previous, handle):
@@ -67,7 +104,7 @@ def collection_payload(html, handle):
 
 
 async def discover_collection(source, value, limit=0, progress=None):
-    initial = collection_url(value)
+    initial, low, high = collection_request(value)
     split = urlsplit(initial)
     handle = split.path.rsplit('/',1)[-1]
     current = initial
@@ -87,6 +124,8 @@ async def discover_collection(source, value, limit=0, progress=None):
             payload = await next_action_page(source, initial, previous, handle)
             action_mode = True
         for p in payload['products']:
+            if not matches_price(p, low, high):
+                continue
             url = product_url(BASE + '/products/' + p['handle'])
             if url not in seen_products:
                 seen_products.add(url)

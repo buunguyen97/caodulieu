@@ -6,7 +6,9 @@ Dự án Python lấy sản phẩm GARVEE từ sitemap và JSON công khai, lưu
 
 ### Cào danh mục và lịch sử tác vụ
 
-Chọn **Một danh mục sản phẩm**, nhập link như `https://www.garvee.com/collections/tennis`, đặt tên tác vụ rồi bấm bắt đầu. Bộ cào đọc danh sách danh mục và đi qua phân trang bằng cursor, không dùng sản phẩm gợi ý. Website hiện có thể tự chuyển hướng tới bộ lọc còn hàng; bộ cào giữ bộ lọc của website/link đã nhập, không khẳng định lấy mọi sản phẩm đã ẩn hoặc bị lọc. Màu liên kết được bổ sung để tránh thiếu màu nên kết quả có thể lớn hơn giới hạn URL đầu vào.
+Chọn **Một danh mục sản phẩm**, nhập link như `https://www.garvee.com/collections/tennis`, đặt tên tác vụ rồi bấm bắt đầu. Mặc định **Số sản phẩm = 0** để lấy toàn bộ. Bộ cào đọc danh sách danh mục và đi qua phân trang bằng cursor, không dùng sản phẩm gợi ý. Website hiện có thể tự chuyển hướng tới bộ lọc còn hàng; bộ cào giữ bộ lọc của website/link đã nhập, không khẳng định lấy mọi sản phẩm đã ẩn hoặc bị lọc. Chế độ danh mục chỉ lấy URL thuộc kết quả danh mục; không bổ sung màu có URL riêng ngoài danh sách.
+
+Link có `filter.v.price.gte` và `filter.v.price.lte` được tách khoảng giá để lọc tại ứng dụng. Ví dụ link sports-recreation có còn hàng và giá 50–300 USD: bộ cào truy cập danh mục còn hàng được robots.txt cho phép, duyệt các trang rồi giữ sản phẩm có giá biến thể trong khoảng 50–300 (bao gồm hai đầu). Giới hạn số lượng áp dụng sau khi lọc. Các bộ lọc khác vẫn gửi nguyên tới website và tuân thủ robots.txt; tổ hợp khác bị chặn sẽ báo lỗi, không âm thầm bỏ bộ lọc. Mọi biến thể của sản phẩm được chọn vẫn được xuất theo template.
 
 Nếu HTML trang tiếp theo bị lặp, bộ cào dùng thao tác load-more công khai của website. Định danh thao tác này được kiểm chứng ngày 16/10/2026; khi GARVEE thay đổi bản triển khai, có thể cần cập nhật `GARVEE_COLLECTION_ACTION`. Không đọc được hoặc cursor lặp sẽ báo lỗi, không báo hoàn tất thiếu sản phẩm.
 
@@ -91,7 +93,7 @@ Môi trường `.venv` đã được cài trên máy hiện tại; có thể ch�
 
 ## Quy tắc dữ liệu
 
-- Tự tìm các màu được liên kết bằng ô chọn ảnh trên trang sản phẩm. GARVEE có thể lưu mỗi màu dưới một URL/SKU riêng: bộ cào bổ sung những URL đó vào lần cào hiện tại và giữ thành sản phẩm riêng theo nguồn. Giới hạn số lượng áp dụng cho URL đầu vào; tổng kết quả có thể lớn hơn để bao gồm đủ màu. Chọn cập nhật để quét lại liên kết màu đã lưu. Chưa tự gộp các URL riêng thành một sản phẩm Shopify nhiều biến thể.
+- Với nguồn URL sản phẩm hoặc sitemap, tự tìm các màu được liên kết bằng ô chọn ảnh trên trang sản phẩm. GARVEE có thể lưu mỗi màu dưới một URL/SKU riêng: bộ cào bổ sung những URL đó vào lần cào hiện tại và giữ thành sản phẩm riêng theo nguồn. Giới hạn số lượng áp dụng cho URL đầu vào; tổng kết quả có thể lớn hơn để bao gồm đủ màu. Nguồn danh mục chỉ lấy các URL trong danh mục sau khi lọc. Chọn cập nhật để quét lại liên kết màu đã lưu. Chưa tự gộp các URL riêng thành một sản phẩm Shopify nhiều biến thể.
 
 - Giá endpoint `.js` là cent: 11999 → 119.99. Không tự áp coupon. CSV không có cột tiền tệ; cần đối chiếu tiền tệ cửa hàng đích trước khi nhập.
 - Sản phẩm xuất mặc định Draft, Published FALSE để kiểm tra trước khi đăng.

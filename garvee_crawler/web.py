@@ -33,7 +33,7 @@ class Dashboard:
         self.writer_lock = None
 
     def start(self, data):
-        limit = int(data.get('limit', 100))
+        limit = int(data.get('limit', 0))
         delay = float(data.get('delay', 1))
         if not 0 <= limit <= 100000 or not 0.5 <= delay <= 30:
             raise ValueError('Số lượng phải từ 0–100.000; khoảng chờ từ 0,5–30 giây.')

@@ -69,6 +69,42 @@ def test_collection_url_validation():
     assert collection_url('https://garvee.com/collections/tennis?page=3&after=abc') == 'https://www.garvee.com/collections/tennis'
 
 
+def test_filtered_collection_scans_all_pages_before_limit():
+    class FakeSource:
+        calls = []
+        async def get(self, url, **kwargs):
+            self.calls.append(url)
+            assert 'filter.v.price' not in url
+            assert 'filter.v.availability=true' in url
+            second = len(self.calls) > 1
+            payload = {'products': [
+                {'handle': str(price), 'price': {'amount': str(price)}}
+                for price in ([49, 50] if not second else [300, 301])],
+                'collectionHandle': 'tennis',
+                'pageInfo': {'hasNextPage': not second, 'endCursor': 'last' if second else 'first'}}
+            stream = 'a:' + json.dumps(payload)
+            return SimpleNamespace(text='<script>self.__next_f.push(' + json.dumps([1, stream]) + ')</script>')
+    source = FakeSource()
+    result = asyncio.run(discover_collection(source,
+        'https://www.garvee.com/collections/tennis?filter.v.availability=true&filter.v.price.gte=50&filter.v.price.lte=300', 2))
+    assert [u.rsplit('/', 1)[-1] for u in result] == ['50', '300']
+    assert len(source.calls) == 2
+
+
+@pytest.mark.parametrize('query', ['filter.v.price.gte=NaN', 'filter.v.price.lte=-1',
+    'filter.v.price.gte=300&filter.v.price.lte=50', 'filter.v.price.gte=abc'])
+def test_invalid_price_filter(query):
+    from garvee_crawler.categories import collection_request
+    with pytest.raises(ValueError):
+        collection_request('https://www.garvee.com/collections/tennis?' + query)
+
+
+def test_price_filter_does_not_silently_skip_unknown_price():
+    from garvee_crawler.categories import matches_price
+    with pytest.raises(ValueError):
+        matches_price({'handle': 'unknown'}, 50, 300)
+
+
 def test_writer_lock_released(tmp_path):
     with OutputLock(tmp_path):
         with pytest.raises(ValueError, match='tác vụ khác'):
